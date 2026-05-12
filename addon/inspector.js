@@ -16,9 +16,10 @@ export let sfConn = {
     const state = searchParams.get("state");
 
     // If we have an authorization code, extract sfHost from state parameter
+    let stateData = {};
     if (authorizationCode && state) {
       try {
-        const stateData = JSON.parse(decodeURIComponent(state));
+        stateData = JSON.parse(decodeURIComponent(state));
         sfHost = stateData.sfHost;
       } catch (error) {
         console.error("Error parsing state parameter:", error);
@@ -41,6 +42,16 @@ export let sfConn = {
         const accessToken = await this.exchangeCodeForToken(sfHost, authorizationCode, codeVerifier);
         this.sessionId = accessToken;
         localStorage.setItem(sfHost + Constants.ACCESS_TOKEN, accessToken);
+
+        // If this is a source org OAuth callback, notify the opener and close
+        if (stateData.isSourceOrg && window.opener) {
+          window.opener.postMessage(
+            {type: "sourceOrgConnected", sfHost, currentOrgHost: stateData.currentOrgHost},
+            "*"
+          );
+          setTimeout(() => window.close(), 150);
+          return null;
+        }
 
         //send message to popup so that it can update the token
         chrome.runtime.sendMessage({message: "tokenUpdated", sfHost});
