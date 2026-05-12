@@ -1,23 +1,20 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Data Export</title>
-  <link rel="stylesheet" href="button.css">
-  
-  <link rel="stylesheet" href="styles/slds/slds.css">
-  <link rel="stylesheet" href="styles/sfir.css">
-  <link rel="stylesheet" href="data-load.css">
-  <link rel="stylesheet" href="data-export.css">
+  <title>Connecting…</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f3f3f3; color: #374151; }
+    .msg { text-align: center; }
+    .msg h2 { font-size: 18px; margin: 0 0 8px; }
+    .msg p { font-size: 13px; color: #6b7280; margin: 0; }
+  </style>
 </head>
-
 <body>
-  <div id="root"></div>
-  <script src="react.js"></script>
-  <script src="react-dom.js"></script>
-  <script src="button.js"></script>
+  <div class="msg">
+    <h2>Connecting…</h2>
+    <p>Completing Salesforce authorization. This window will close automatically.</p>
+  </div>
   <script type="module" src="data-export.js"></script>
 </body>
-
 </html>

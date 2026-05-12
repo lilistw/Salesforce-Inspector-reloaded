@@ -1,121 +1,131 @@
+const SF_DOMAIN_SUFFIXES = [
+  ".salesforce.com", ".salesforce-setup.com", ".force.com", ".cloudforce.com",
+  ".visualforce.com", ".sfcrmapps.cn", ".sfcrmproducts.cn", ".salesforce.mil",
+  ".force.mil", ".cloudforce.mil", ".visualforce.mil", ".crmforce.mil",
+  ".force.com.mcas.ms", ".builder.salesforce-experience.com"
+];
 
-let sfHost;
+const COOKIE_DOMAINS = ["salesforce.com", "cloudforce.com", "salesforce.mil", "cloudforce.mil", "sfcrmproducts.cn", "force.com"];
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // Perform cookie operations in the background page, because not all foreground pages have access to the cookie API.
-  // Firefox does not support incognito split mode, so we use sender.tab.cookieStoreId to select the right cookie store.
-  // Chrome does not support sender.tab.cookieStoreId, which means it is undefined, and we end up using the default cookie store according to incognito split mode.
-  if (request.message == "getSfHost") {
-    const currentDomain = new URL(request.url).hostname;
-    // When on a *.visual.force.com page, the session in the cookie does not have API access,
-    // so we read the corresponding session from *.salesforce.com page.
-    // The first part of the session cookie is the OrgID,
-    // which we use as key to support being logged in to multiple orgs at once.
-    // http://salesforce.stackexchange.com/questions/23277/different-session-ids-in-different-contexts
-    // There is no straight forward way to unambiguously understand if the user authenticated against salesforce.com or cloudforce.com
-    // (and thereby the domain of the relevant cookie) cookie domains are therefore tried in sequence.
-    chrome.cookies.get({url: request.url, name: "sid", storeId: sender.tab.cookieStoreId}, cookie => {
-      if (!cookie || currentDomain.endsWith(".mcas.ms")) { //Domain used by Microsoft Defender for Cloud Apps, where sid exists but cannot be read
-        sendResponse(currentDomain);
+function isSalesforceUrl(url) {
+  if (!url || !url.startsWith("https://")) return false;
+  try {
+    const host = new URL(url).hostname;
+    return SF_DOMAIN_SUFFIXES.some(s => host.endsWith(s));
+  } catch {
+    return false;
+  }
+}
+
+// sfHost per windowId — updated whenever user activates a Salesforce tab
+const windowSfHost = {};
+
+async function resolveSfHost(tab) {
+  if (!tab?.url || !isSalesforceUrl(tab.url)) return null;
+  return new Promise(resolve => {
+    const storeId = tab.cookieStoreId; // undefined in Chrome = default store
+    chrome.cookies.get({url: tab.url, name: "sid", storeId}, cookie => {
+      if (!cookie || new URL(tab.url).hostname.endsWith(".mcas.ms")) {
+        resolve(new URL(tab.url).hostname);
         return;
       }
       const [orgId] = cookie.value.split("!");
-      const orderedDomains = ["salesforce.com", "cloudforce.com", "salesforce.mil", "cloudforce.mil", "sfcrmproducts.cn", "force.com"];
+      let found = false;
+      COOKIE_DOMAINS.forEach(domain => {
+        chrome.cookies.getAll({name: "sid", domain, secure: true, storeId}, cookies => {
+          if (found) return;
+          const match = cookies.find(c => c.value.startsWith(orgId + "!") && c.domain !== "help.salesforce.com");
+          if (match) { found = true; resolve(match.domain); }
+        });
+      });
+      // Fallback if no matching org cookie found within 600ms
+      setTimeout(() => { if (!found) resolve(new URL(tab.url).hostname); }, 600);
+    });
+  });
+}
 
-      orderedDomains.forEach(currentDomain => {
-        chrome.cookies.getAll({name: "sid", domain: currentDomain, secure: true, storeId: sender.tab.cookieStoreId}, cookies => {
+async function onTabActivated(tabId, windowId) {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    const sfHost = await resolveSfHost(tab);
+    if (sfHost) {
+      windowSfHost[windowId] = sfHost;
+      chrome.runtime.sendMessage({message: "sfHostChanged", sfHost}).catch(() => {});
+    }
+  } catch {
+    // Tab may have closed already
+  }
+}
 
-          let sessionCookie = cookies.find(c => c.value.startsWith(orgId + "!") && c.domain != "help.salesforce.com");
-          if (sessionCookie) {
-            sendResponse(sessionCookie.domain);
-          }
+chrome.tabs.onActivated.addListener(({tabId, windowId}) => {
+  onTabActivated(tabId, windowId);
+});
+
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status !== "complete" || !tab.active) return;
+  const sfHost = await resolveSfHost(tab);
+  if (sfHost && tab.windowId) {
+    windowSfHost[tab.windowId] = sfHost;
+    chrome.runtime.sendMessage({message: "sfHostChanged", sfHost}).catch(() => {});
+  }
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.sidePanel.setPanelBehavior({openPanelOnActionClick: true}).catch(() => {});
+});
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  const storeId = sender.tab?.cookieStoreId;
+
+  if (request.message === "getCurrentSfHost") {
+    chrome.windows.getCurrent(w => {
+      sendResponse({sfHost: windowSfHost[w?.id] || null});
+    });
+    return true;
+  }
+
+  if (request.message === "getSfHost") {
+    const currentHostname = new URL(request.url).hostname;
+    chrome.cookies.get({url: request.url, name: "sid", storeId}, cookie => {
+      if (!cookie || currentHostname.endsWith(".mcas.ms")) {
+        sendResponse(currentHostname);
+        return;
+      }
+      const [orgId] = cookie.value.split("!");
+      let found = false;
+      COOKIE_DOMAINS.forEach(domain => {
+        chrome.cookies.getAll({name: "sid", domain, secure: true, storeId}, cookies => {
+          if (found) return;
+          const match = cookies.find(c => c.value.startsWith(orgId + "!") && c.domain !== "help.salesforce.com");
+          if (match) { found = true; sendResponse(match.domain); }
         });
       });
     });
-    return true; // Tell Chrome that we want to call sendResponse asynchronously.
+    return true;
   }
-  if (request.message == "getSession") {
-    sfHost = request.sfHost;
-    chrome.cookies.get({url: "https://" + request.sfHost, name: "sid", storeId: sender.tab.cookieStoreId}, sessionCookie => {
-      if (!sessionCookie) {
-        sendResponse(null);
-        return;
-      }
-      let session = {key: sessionCookie.value, hostname: sessionCookie.domain};
-      sendResponse(session);
+
+  if (request.message === "getSession") {
+    chrome.cookies.get({url: "https://" + request.sfHost, name: "sid", storeId}, cookie => {
+      if (!cookie) { sendResponse(null); return; }
+      sendResponse({key: cookie.value, hostname: cookie.domain});
     });
-    return true; // Tell Chrome that we want to call sendResponse asynchronously.
-  } else if (request.message == "createWindow") {
-    const brow = typeof browser === "undefined" ? chrome : browser;
-    brow.windows.create({
-      url: request.url,
-      incognito: request.incognito ?? false
-    });
-  } else if (request.message == "reloadPage") {
-    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-      chrome.tabs.reload(tabs[0].id);
-    });
+    return true;
   }
+
+  if (request.message === "tokenUpdated") {
+    // Relay token update to side panel (source org OAuth callback)
+    chrome.runtime.sendMessage({message: "tokenUpdated", sfHost: request.sfHost}).catch(() => {});
+  }
+
+  if (request.message === "createWindow") {
+    chrome.windows.create({url: request.url, incognito: request.incognito ?? false, type: "popup", width: 600, height: 700});
+  }
+
   return false;
 });
-chrome.action.onClicked.addListener(() => {
-  chrome.runtime.sendMessage({
-    msg: "shortcut_pressed", sfHost, command: "open-popup"
-  });
-});
+
 chrome.commands?.onCommand.addListener((command) => {
-  if (command.startsWith("link-")){
-    let link;
-    switch (command){
-      case "link-setup":
-        link = "/lightning/setup/SetupOneHome/home";
-        break;
-      case "link-home":
-        link = "/";
-        break;
-      case "link-dev":
-        link = "/_ui/common/apex/debug/ApexCSIPage";
-        break;
-    }
-    chrome.tabs.create({
-      url: `https:///${sfHost}${link}`
-    });
-
-  } else if (command.startsWith("open-")){
-    chrome.runtime.sendMessage({
-      msg: "shortcut_pressed", command, sfHost
-    });
-  } else {
-    chrome.tabs.create({
-      url: `chrome-extension://${chrome.i18n.getMessage("@@extension_id")}/${command}.html?host=${sfHost}`
-    });
+  if (command === "options") {
+    chrome.runtime.openOptionsPage();
   }
 });
-
-chrome.runtime.onInstalled.addListener(async (details) => {
-  if (details.reason === "install") {
-    chrome.tabs.create({
-      url: "https://tprouvot.github.io/Salesforce-Inspector-reloaded/welcome/"
-    });
-  } else if (details.reason === "update" && details.previousVersion?.startsWith("2.0")) {
-    //TODO delete clearSobjectsListCache after 2.0.1 release, only for upgrade from 2.0.0 to 2.0.1
-    await clearSobjectsListCache();
-  }
-});
-
-async function clearSobjectsListCache() {
-  try {
-    const storage = (typeof chrome !== "undefined" && chrome.storage) ? chrome.storage : browser.storage;
-    if (!storage?.local) return;
-    const allData = await storage.local.get(null);
-    const keysToRemove = Object.keys(allData || {}).filter(key =>
-      key === "cache_sobjectsList"
-    );
-    if (keysToRemove.length > 0) {
-      await storage.local.remove(keysToRemove);
-    }
-  } catch (e) {
-    console.error("Error clearing sobjectsList cache on update:", e);
-  }
-}
-chrome.runtime.setUninstallURL("https://forms.gle/y7LbTNsFqEqSrtyc6");

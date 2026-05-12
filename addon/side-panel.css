@@ -1,0 +1,378 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Salesforce Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  background: #f3f3f3;
+  color: #181818;
+  overflow: hidden;
+}
+
+#root { height: 100%; display: flex; flex-direction: column; }
+
+/* ── Panel shell ─────────────────────────────── */
+.sem-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #fff;
+}
+
+/* ── Header ──────────────────────────────────── */
+.sem-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #032d60;
+  color: #fff;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.sem-header-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sem-header-indicators {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Status dot */
+.sem-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #6b7280;
+  transition: background 0.3s;
+}
+.sem-dot--idle     { background: #6b7280; }
+.sem-dot--live     { background: #22c55e; }
+.sem-dot--reconnect{ background: #f59e0b; animation: sem-pulse 1s ease-in-out infinite; }
+.sem-dot--error    { background: #ef4444; }
+
+/* Publishing flash */
+.sem-publish-indicator {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #86efac;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.sem-publish-indicator--active { opacity: 1; animation: sem-flash 0.6s ease-in-out; }
+
+.sem-event-badge {
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.18);
+  padding: 1px 5px;
+  border-radius: 10px;
+}
+
+.sem-collapse-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+.sem-collapse-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* ── Body (collapsible) ──────────────────────── */
+.sem-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sem-body--hidden { display: none; }
+
+/* ── Org bar ─────────────────────────────────── */
+.sem-org-bar {
+  padding: 5px 10px;
+  background: #f8f9fb;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 11px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sem-org-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.sem-org-badge--prod { background: #fee2e2; color: #b91c1c; }
+.sem-org-name { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Section ─────────────────────────────────── */
+.sem-section {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.sem-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+/* ── Form rows ───────────────────────────────── */
+.sem-row { display: flex; gap: 6px; align-items: center; margin-bottom: 5px; }
+.sem-row:last-child { margin-bottom: 0; }
+.sem-label { font-size: 11px; color: #374151; white-space: nowrap; min-width: 52px; }
+
+.sem-select {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 3px 6px;
+  background: #fff;
+  color: #111827;
+  height: 26px;
+}
+.sem-select:focus { outline: none; border-color: #0176d3; box-shadow: 0 0 0 2px rgba(1,118,211,0.25); }
+
+.sem-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 3px 6px;
+  background: #fff;
+  color: #111827;
+  height: 26px;
+}
+.sem-input:focus { outline: none; border-color: #0176d3; box-shadow: 0 0 0 2px rgba(1,118,211,0.25); }
+.sem-input-full { width: 100%; }
+
+/* ── Buttons ─────────────────────────────────── */
+.sem-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  height: 26px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sem-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.sem-btn--primary  { background: #0176d3; color: #fff; border-color: #0176d3; }
+.sem-btn--primary:hover:not(:disabled)  { background: #014486; }
+.sem-btn--neutral  { background: #fff; color: #0176d3; border-color: #0176d3; }
+.sem-btn--neutral:hover:not(:disabled)  { background: #f0f5ff; }
+.sem-btn--danger   { background: #ba0517; color: #fff; border-color: #ba0517; }
+.sem-btn--icon     { background: none; border: none; padding: 3px 5px; font-size: 13px; color: #6b7280; }
+.sem-btn--icon:hover { color: #374151; }
+
+.sem-btn-group { display: flex; gap: 4px; }
+
+/* ── Checkbox row ────────────────────────────── */
+.sem-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.sem-checkbox-row input[type=checkbox] { margin: 0; cursor: pointer; accent-color: #0176d3; }
+
+/* ── Status bar ──────────────────────────────── */
+.sem-statusbar {
+  padding: 4px 10px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8f9fb;
+  border-bottom: 1px solid #e5e7eb;
+  min-height: 24px;
+  flex-shrink: 0;
+}
+.sem-status-live    { color: #166534; font-weight: 600; }
+.sem-status-reconnect{ color: #92400e; font-weight: 600; }
+.sem-status-error   { color: #991b1b; font-weight: 600; }
+.sem-status-idle    { color: #6b7280; }
+
+/* ── Event feed ──────────────────────────────── */
+.sem-feed {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sem-feed-toolbar {
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  background: #fff;
+}
+
+.sem-feed-toolbar .sem-input {
+  flex: 1;
+  height: 24px;
+  font-size: 11px;
+}
+
+.sem-feed-count { font-size: 11px; color: #6b7280; white-space: nowrap; }
+
+.sem-feed-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.sem-event {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.sem-event:hover { background: #f5f9ff; }
+.sem-event--selected { background: #e8f0fe; }
+
+.sem-event pre {
+  margin: 0;
+  font-size: 10.5px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #1f2937;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.sem-event-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+
+.sem-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 10px;
+}
+.sem-tag--source   { background: #ede9fe; color: #5b21b6; }
+.sem-tag--success  { background: #dcfce7; color: #166534; }
+.sem-tag--failed   { background: #fee2e2; color: #991b1b; }
+.sem-tag--pending  { background: #fef3c7; color: #92400e; animation: sem-pulse 1s ease-in-out infinite; }
+
+/* ── No-org state ────────────────────────────── */
+.sem-no-org {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  padding: 24px;
+  text-align: center;
+  gap: 8px;
+}
+.sem-no-org-icon { font-size: 28px; }
+.sem-no-org-text { font-size: 12px; line-height: 1.5; }
+
+/* ── Generate modal textarea ────────────────── */
+.sem-payload-textarea {
+  width: 100%;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 11px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 6px;
+  resize: vertical;
+  min-height: 140px;
+  color: #111827;
+}
+.sem-payload-textarea:focus { outline: none; border-color: #0176d3; }
+
+/* ── Error / info alerts ─────────────────────── */
+.sem-alert {
+  margin: 6px 10px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.sem-alert--error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.sem-alert--info  { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.sem-alert--warn  { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+
+/* ── Connect org form inside modal ─────────────── */
+.sem-radio-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.sem-radio-row { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; }
+.sem-radio-row input { margin: 0; cursor: pointer; accent-color: #0176d3; }
+
+/* ── Animations ──────────────────────────────── */
+@keyframes sem-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes sem-flash {
+  0%  { opacity: 0; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1.1); }
+  100%{ opacity: 1; transform: scale(1); }
+}
+
+/* ── Scrollbar ───────────────────────────────── */
+.sem-feed-list::-webkit-scrollbar { width: 5px; }
+.sem-feed-list::-webkit-scrollbar-track { background: transparent; }
+.sem-feed-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+/* ── Divider ─────────────────────────────────── */
+.sem-divider { height: 1px; background: #e5e7eb; margin: 0; }
+
+/* ── Org connected list ─────────────────────── */
+.sem-org-list { display: flex; flex-direction: column; gap: 3px; }
+.sem-org-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 2px 0;
+}
+.sem-org-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
