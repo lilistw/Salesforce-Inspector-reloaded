@@ -369,7 +369,7 @@ export async function routeMock(route, host) {
         return true;
       }
 
-      // Dependencies Explorer - ApexClass (test/main: SalesforceInspectorTest)
+      // Dependencies Explorer - ApexClass mock (SalesforceInspectorTest)
       if (path.includes("/tooling/") && query.includes("apexclass")) {
         await fulfillSuccess(route, {
           records: [
@@ -383,7 +383,7 @@ export async function routeMock(route, host) {
         return true;
       }
 
-      // Dependencies Explorer - Flow (test/main: RecordTrigger_InspectorTest)
+      // Dependencies Explorer - Flow mock (RecordTrigger_InspectorTest)
       if (path.includes("/tooling/query") && query.includes("from flow") && query.includes("definition")) {
         await fulfillSuccess(route, {
           records: [
@@ -399,7 +399,7 @@ export async function routeMock(route, host) {
         return true;
       }
 
-      // Dependencies Explorer - CustomObject (test/main: Inspector_Test__c)
+      // Dependencies Explorer - CustomObject mock (Inspector_Test__c)
       // Match tooling query for CustomObject (FROM CustomObject) - avoid EntityParticle which has FROM EntityParticle
       const isCustomObjectQuery = path.includes("/tooling/")
         && (query.includes("from customobject") || query.includes("from+customobject"))

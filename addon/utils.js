@@ -524,23 +524,32 @@ export function getRedirectUri(page = "data-export.html") {
 }
 
 // PKCE (Proof Key for Code Exchange) utilities
-export async function getPKCEParameters(sfHost) {
-  try {
-    const response = await fetch(`https://${sfHost}/services/oauth2/pkce/generator`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch PKCE parameters: ${response.status}`);
-    }
-    const data = await response.json();
-    return {
-      // eslint-disable-next-line camelcase
-      code_verifier: data.code_verifier,
-      // eslint-disable-next-line camelcase
-      code_challenge: data.code_challenge
-    };
-  } catch (error) {
-    console.error("Error fetching PKCE parameters:", error);
-    throw error;
-  }
+export async function getPKCEParameters() {
+  const verifierChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+  const randomBytes = new Uint8Array(64);
+  crypto.getRandomValues(randomBytes);
+  const codeVerifier = Array.from(randomBytes, byte => verifierChars[byte % verifierChars.length]).join("");
+  const encodedVerifier = new TextEncoder().encode(codeVerifier);
+  const challengeBuffer = await crypto.subtle.digest("SHA-256", encodedVerifier);
+  const codeChallenge = base64UrlEncode(new Uint8Array(challengeBuffer));
+
+  return {
+    // eslint-disable-next-line camelcase
+    code_verifier: codeVerifier,
+    // eslint-disable-next-line camelcase
+    code_challenge: codeChallenge
+  };
+}
+
+function base64UrlEncode(bytes) {
+  let binary = "";
+  bytes.forEach(byte => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
 // Copy text to the clipboard, without rendering it, since rendering is slow.

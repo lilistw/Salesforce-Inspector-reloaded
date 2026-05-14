@@ -2,7 +2,7 @@
 
 > **Prerequisite**
 > Agentforce needs to be enabled.
-> The prompt PromptTemplateDebugLog needs to be deployed in the org. ([AnalyzeDebugLog prompt template](https://github.com/tprouvot/Salesforce-Inspector-reloaded/blob/releaseCandidate/force-app/main/default/genAiPromptTemplates/AnalyzeDebugLog.genAiPromptTemplate-meta.xml))
+> The prompt PromptTemplateDebugLog needs to be deployed in the org. See the upstream Salesforce Inspector Reloaded prompt template for reference.
 
 You can use Agentforce to generate detailed log analysis. This feature leverages Salesforce's Prompt Templates to help you understand the log details.
 

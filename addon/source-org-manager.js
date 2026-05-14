@@ -33,7 +33,7 @@ export function getSourceOrgToken(sfHost) {
 }
 
 export async function initiateSourceOrgOAuth(orgHost, currentOrgHost) {
-  const pkceParams = await getPKCEParameters(orgHost);
+  const pkceParams = await getPKCEParameters();
   localStorage.setItem(orgHost + Constants.CODE_VERIFIER, pkceParams.code_verifier);
 
   const redirectUri = getRedirectUri("data-export.html");
@@ -45,10 +45,11 @@ export async function initiateSourceOrgOAuth(orgHost, currentOrgHost) {
   }));
 
   const authUrl = `https://${orgHost}/services/oauth2/authorize`
-    + `?response_type=code`
+    + "?response_type=code"
     + `&client_id=${encodeURIComponent(clientId)}`
     + `&redirect_uri=${encodeURIComponent(redirectUri)}`
-    + `&code_challenge=${pkceParams.code_challenge}`
+    + `&code_challenge=${encodeURIComponent(pkceParams.code_challenge)}`
+    + "&code_challenge_method=S256"
     + `&state=${state}`;
 
   chrome.runtime.sendMessage({message: "createWindow", url: authUrl});

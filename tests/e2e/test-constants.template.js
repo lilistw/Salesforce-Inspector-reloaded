@@ -1,10 +1,7 @@
 /**
  * Template for test constants.
- * Copy this file to test-constants.local.js and fill in real values,
- * or run: npm run set-test-constants
- *
- * test-constants.local.js is gitignored. This template is used as fallback in CI
- * when .local is absent (mock mode).
+ * test-constants.local.js is gitignored. This template is copied as a fallback
+ * for mock mode when the local file is absent.
  */
 export const TEST_CONSTANTS = {
   mockHost: "mock-host.salesforce.com",

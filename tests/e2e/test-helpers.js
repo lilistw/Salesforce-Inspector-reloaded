@@ -4,17 +4,12 @@
  */
 
 // Test constants are loaded from test-constants.local.js (gitignored).
-// If the file does not exist, the template (mock mode) is copied automatically.
-// To configure for a real org, run: npm run set-test-constants
-// Or copy test-constants.template.js to test-constants.local.js and fill in real values.
+// If the file does not exist, the template is copied automatically for mock mode.
 const _fs = require("fs");
 const _path = require("path");
 const _localPath = _path.join(__dirname, "test-constants.local.js");
 if (!_fs.existsSync(_localPath)) {
-
-  console.warn("test-constants.local.js not found, copying template (mock mode).");
-
-  console.warn("Run 'npm run set-test-constants' to configure for a real org.\n");
+  console.warn("test-constants.local.js not found, copying template (mock mode).\n");
   _fs.copyFileSync(_path.join(__dirname, "test-constants.template.js"), _localPath);
 }
 

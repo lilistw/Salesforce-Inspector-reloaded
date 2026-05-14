@@ -1,6 +1,6 @@
 /* global React ReactDOM */
 import {sfConn, apiVersion} from "./inspector.js";
-import {getBrowserType, createSpinForMethod, copyToClipboard, StorageHistory, Constants, UserInfoModel} from "./utils.js";
+import {getBrowserType, createSpinForMethod, copyToClipboard, StorageHistory, Constants, UserInfoModel, getRedirectUri} from "./utils.js";
 import {CometD} from "./lib/cometd/cometd.js";
 import ConfirmModal from "./components/ConfirmModal.js";
 import {getSourceOrgs, saveSourceOrg, removeSourceOrg, getSourceOrgToken, initiateSourceOrgOAuth} from "./source-org-manager.js";
@@ -130,6 +130,8 @@ class Model {
     this.showConnectDialog = false;
     this.connectOrgType = "production";
     this.connectOrgCustomHost = "";
+    this.connectOrgClientId = "";
+    this.connectOrgCallbackUri = getRedirectUri("data-export.html");
     this.connectOrgError = "";
     this.connectOrgLoading = false;
 
@@ -191,7 +193,8 @@ class App extends React.Component {
       "onSelectEvent", "onCopyAsJson", "onClearEvents",
       "onEventFilterInput", "onClearFilter",
       "onSourceOrgChange", "onConnectOrgClick", "onConnectOrgTypeChange",
-      "onConnectOrgCustomHostInput", "onConfirmConnect", "onCancelConnect",
+      "onConnectOrgCustomHostInput", "onConnectOrgClientIdInput", "onCopyConnectCallback",
+      "onConfirmConnect", "onCancelConnect",
       "onRemoveSourceOrg", "onPublishCheckboxChange",
       "onGenerateClick", "onConfirmGenerate", "onCancelGenerate",
       "onGeneratePayloadChange", "onRegeneratePayload",
@@ -447,32 +450,57 @@ class App extends React.Component {
 
   // ── Source org connect ────────────────────────────────────────────────────────
 
+  getConnectOrgHost() {
+    const {model} = this.props;
+    if (model.connectOrgType === "production") return "login.salesforce.com";
+    if (model.connectOrgType === "sandbox") return "test.salesforce.com";
+    return model.connectOrgCustomHost;
+  }
+
+  loadConnectOrgClientId() {
+    const {model} = this.props;
+    const orgHost = this.getConnectOrgHost();
+    model.connectOrgClientId = orgHost ? localStorage.getItem(orgHost + Constants.CLIENT_ID) || "" : "";
+  }
+
   onConnectOrgClick() {
     const {model} = this.props;
     model.showConnectDialog = true;
     model.connectOrgError = "";
     model.connectOrgLoading = false;
+    this.loadConnectOrgClientId();
     model.didUpdate();
   }
 
   onConnectOrgTypeChange(e) {
     const {model} = this.props;
     model.connectOrgType = e.target.value;
+    this.loadConnectOrgClientId();
     model.didUpdate();
   }
 
   onConnectOrgCustomHostInput(e) {
     const {model} = this.props;
     model.connectOrgCustomHost = e.target.value.trim().replace(/^https?:\/\//, "");
+    this.loadConnectOrgClientId();
+    model.didUpdate();
+  }
+
+  onConnectOrgClientIdInput(e) {
+    const {model} = this.props;
+    model.connectOrgClientId = e.target.value.trim();
+    model.didUpdate();
+  }
+
+  onCopyConnectCallback() {
+    const {model} = this.props;
+    copyToClipboard(model.connectOrgCallbackUri);
     model.didUpdate();
   }
 
   async onConfirmConnect() {
     const {model} = this.props;
-    let orgHost;
-    if (model.connectOrgType === "production") orgHost = "login.salesforce.com";
-    else if (model.connectOrgType === "sandbox") orgHost = "test.salesforce.com";
-    else orgHost = model.connectOrgCustomHost;
+    const orgHost = this.getConnectOrgHost();
 
     if (!orgHost) {
       model.connectOrgError = "Please enter a Salesforce host.";
@@ -485,6 +513,12 @@ class App extends React.Component {
     model.didUpdate();
 
     try {
+      const customClientId = model.connectOrgClientId.trim();
+      if (customClientId) {
+        localStorage.setItem(orgHost + Constants.CLIENT_ID, customClientId);
+      } else {
+        localStorage.removeItem(orgHost + Constants.CLIENT_ID);
+      }
       await initiateSourceOrgOAuth(orgHost, model.sfHost);
     } catch (err) {
       model.connectOrgError = err.message || String(err);
@@ -997,6 +1031,32 @@ class App extends React.Component {
             onChange: this.onConnectOrgCustomHostInput
           })
         : null,
+      h("div", {className: "sem-field"},
+        h("label", {className: "sem-field-label"}, "Consumer Key"),
+        h("input", {
+          className: "sem-input sem-input-full",
+          placeholder: "Use default connected app",
+          value: model.connectOrgClientId,
+          onChange: this.onConnectOrgClientIdInput,
+          disabled: model.connectOrgLoading
+        })
+      ),
+      h("div", {className: "sem-field"},
+        h("label", {className: "sem-field-label"}, "Callback URL"),
+        h("div", {className: "sem-inline-input"},
+          h("input", {
+            className: "sem-input",
+            value: model.connectOrgCallbackUri,
+            readOnly: true
+          }),
+          h("button", {
+            className: "sem-btn sem-btn--neutral",
+            type: "button",
+            onClick: this.onCopyConnectCallback,
+            disabled: model.connectOrgLoading
+          }, "Copy")
+        )
+      ),
       model.connectOrgError
         ? h("div", {className: "sem-alert sem-alert--error"}, model.connectOrgError)
         : null,

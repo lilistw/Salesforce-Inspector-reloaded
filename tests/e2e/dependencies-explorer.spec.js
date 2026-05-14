@@ -6,7 +6,7 @@ import {
 import {routeMock} from "./test-mock";
 
 /**
- * Dependencies Explorer E2E tests using metadata from test/main/:
+ * Dependencies Explorer E2E tests using mocked metadata:
  * - ApexClass: SalesforceInspectorTest
  * - Flow: RecordTrigger_InspectorTest (references Inspector_Test__c)
  * - CustomObject: Inspector_Test__c
@@ -46,7 +46,7 @@ test.describe("Dependencies Explorer", () => {
 
     await expect(page).toHaveTitle(/Dependencies Explorer/);
 
-    // Open item dropdown and verify test class from test/main/classes/
+    // Open item dropdown and verify mocked test class.
     // SalesforceInspectorTest.cls references Inspector_Test__c: "Inspector_Test__c inspectorTest = new Inspector_Test__c()"
     await page.locator(".dep-dropdown-trigger").click();
     await expect(page.locator(".dep-dropdown-item:has-text('SalesforceInspectorTest')")).toBeVisible();
@@ -80,7 +80,7 @@ test.describe("Dependencies Explorer", () => {
   test.skip("Analyze Flow dependencies shows Inspector_Test__c", async ({page, extensionId}) => {
     await initDependenciesExplorerPage(page, extensionId, "Flow");
 
-    // Select RecordTrigger_InspectorTest (from test/main/default/flows/)
+    // Select the mocked RecordTrigger_InspectorTest flow.
     await page.locator(".dep-dropdown-trigger").click();
     await page.locator(".dep-dropdown-item:has-text('RecordTrigger_InspectorTest')").click();
 
